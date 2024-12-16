@@ -3,23 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secret Santa Assignment</title>
+    <title>Partner Assignment</title>
 </head>
 <body style="background: linear-gradient(to bottom, #ff0000, #ff6666); font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; color: white;">
     <h1 style="margin-bottom: 20px;">Select Your Secret Santa Name</h1>
     <select id="nameDropdown" style="height: 40px; border-radius: 50px; border: none; padding: 0 20px; font-size: 16px; margin-bottom: 20px;">
         <option value="">Select your name</option>
     </select>
-    <button onclick="assignPartner()" style="height: 40px; border-radius: 50px; border: none; padding: 0 20px; font-size: 16px; margin-bottom: 20px; background-color: green; color: white; cursor: pointer;">Select your receiver! &#x1f381;</button>
+    <button onclick="assignPartner()" style="height: 40px; border-radius: 50px; border: none; padding: 0 20px; font-size: 16px; margin-bottom: 20px; background-color: green; color: white; cursor: pointer;">Get your receiver! &#x1f381;</button>
     <p id="result" style="font-size: 18px; margin-top: 20px;"></p>
 
+    <script src="https://apis.google.com/js/api.js"></script>
     <script>
-        // Sample data from Excel sheet converted to JSON
-        const names = ["Nat", "Allan", "Daniel", "Hiroko", "Ikumi", "Joel", "Ahmed", "Ash", "Taichi"];
+        let names = [];
+        const assignedPartners = {};
+        const spreadsheetId = '1wO1s3Kc9qB5acL0Xhzcc1W7HMwvslXGZN5c1x_ddtaM';
+        const apiKey = 'AIzaSyBUgm5icysotGLCT1XPg6pwKsJqDvYorYs';
+        const range = 'Sheet1!A:A'; // Adjust the range as needed
 
-        // Populate the dropdown with names
-        const dropdown = document.getElementById('nameDropdown');
+        function initClient() {
+            gapi.client.init({
+                apiKey: apiKey,
+                discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"],
+            }).then(() => {
+                loadNames();
+            });
+        }
+
+        function loadNames() {
+            gapi.client.sheets.spreadsheets.values.get({
+                spreadsheetId: spreadsheetId,
+                range: range,
+            }).then(response => {
+                names = response.result.values.flat();
+                populateDropdown();
+            }, error => {
+                console.error('Error fetching data from Google Sheets:', error);
+            });
+        }
+
         function populateDropdown() {
+            const dropdown = document.getElementById('nameDropdown');
             dropdown.innerHTML = '';
             const availableNames = names.filter(name => !assignedPartners[name]);
 
@@ -45,10 +69,8 @@
             }
         }
 
-        // Store assigned partners
-        const assignedPartners = {};
-
         function assignPartner() {
+            const dropdown = document.getElementById('nameDropdown');
             const selectedName = dropdown.value;
             if (!selectedName) {
                 alert("Please select your name.");
@@ -60,7 +82,6 @@
                 return;
             }
 
-            // Filter out the selected name and already assigned partners
             const availablePartners = names.filter(name => name !== selectedName && !Object.values(assignedPartners).includes(name));
 
             if (availablePartners.length === 0) {
@@ -68,18 +89,30 @@
                 return;
             }
 
-            // Randomly assign a partner
             const partner = availablePartners[Math.floor(Math.random() * availablePartners.length)];
             assignedPartners[selectedName] = partner;
 
             document.getElementById('result').textContent = `You have been assigned a partner: ${partner}`;
 
-            // Update the dropdown to remove the selected name
-            populateDropdown();
+            updateSheet(selectedName, partner);
         }
 
-        // Initial population of the dropdown
-        populateDropdown();
+        function updateSheet(user, partner) {
+            const values = names.filter(name => name !== user && name !== partner).map(name => [name]);
+            gapi.client.sheets.spreadsheets.values.update({
+                spreadsheetId: spreadsheetId,
+                range: range,
+                valueInputOption: 'RAW',
+                resource: { values: values },
+            }).then(response => {
+                console.log('Sheet updated successfully');
+                loadNames();
+            }, error => {
+                console.error('Error updating Google Sheets:', error);
+            });
+        }
+
+        gapi.load('client', initClient);
     </script>
 </body>
 </html>
