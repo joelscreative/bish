@@ -101,7 +101,11 @@
         }
 
         function updateSheet(user, partner) {
-            const values = names.filter(name => name !== user && name !== partner).map(name => [name]);
+            // Remove the user and partner from the names array
+            names = names.filter(name => name !== user && name !== partner);
+
+            // Update the Google Sheet with the remaining names
+            const values = names.map(name => [name]);
             gapi.client.sheets.spreadsheets.values.update({
                 spreadsheetId: spreadsheetId,
                 range: range,
