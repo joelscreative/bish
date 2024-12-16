@@ -27,8 +27,6 @@
                 discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"],
             }).then(() => {
                 loadNames();
-            }).catch(error => {
-                console.error('Error initializing Google API client:', error);
             });
         }
 
@@ -37,10 +35,9 @@
                 spreadsheetId: spreadsheetId,
                 range: range,
             }).then(response => {
-                names = response.result.values ? response.result.values.flat() : [];
-                console.log('Names loaded:', names);
+                names = response.result.values.flat();
                 populateDropdown();
-            }).catch(error => {
+            }, error => {
                 console.error('Error fetching data from Google Sheets:', error);
             });
         }
@@ -110,7 +107,7 @@
             }).then(response => {
                 console.log('Sheet updated successfully');
                 loadNames();
-            }).catch(error => {
+            }, error => {
                 console.error('Error updating Google Sheets:', error);
             });
         }
